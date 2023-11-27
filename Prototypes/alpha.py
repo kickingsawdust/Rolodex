@@ -43,11 +43,11 @@ kit = MotorKit(i2c=board.I2C())
 #kit.stepper1.release()
 
 slot = 0
-while slot < 54:
+while slot < 64:
     count = 0
     while count < 25:
         kit.stepper1.onestep(direction=stepper.FORWARD, style=stepper.MICROSTEP)
-        time.sleep(.0001)
+        time.sleep(.001)
         count +=1
     slot +=1
     time.sleep(.3)
