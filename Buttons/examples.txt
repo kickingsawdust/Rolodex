@@ -1,0 +1,69 @@
+#script   
+while True:
+    if btR.is_pressed:
+        sleep(.5)
+        number()
+    elif btY.is_pressed:
+        sleep(.5)
+        print("pressed " + str(clicks) + " times")
+        ldY.blink(on_time=.5, off_time=.5, n=clicks)
+
+pause()
+
+aaaaaaaaaaaaaaaaaaaaa
+
+
+from gpiozero import Button
+count = 0
+button = Button(4)
+
+while True:
+  button.wait_for_press()
+  print("The button was pressed!")
+  count = count +1
+  print (count, "presses so far")
+
+
+bbbbbbbbbbbbbbbbbbbbbb
+
+from gpiozero import Button
+count = 0
+button = Button(4)
+
+while True:
+  button.wait_for_press()
+  print("The button was pressed!")
+  count = count +1
+  print (count, "presses so far")
+
+
+cccccccccccccccccccccc
+
+        button.wait_for_press()
+        print("The button was pressed!")
+        count = count +1
+        print (count, "presses so far")
+        
+except:
+    pass
+
+finally:
+    GPIO.cleanup()
+
+
+dddddddddddddddddddddd
+
+
+from gpiozero import Button
+count = 0
+button = Button(2)
+
+while True:
+button.wait_for_press()
+
+#I added this line so it waits for the button to be released to add to the count, then waits for the button to be pressed before start of next count
+button.wait_for_release()
+
+print("The button was pressed!")
+count = count +1
+print (count, "presses so far")
