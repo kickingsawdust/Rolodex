@@ -36,12 +36,19 @@ card_value = 0
 actuator_button = Button(GPIOPINHERE)
 actuator_button_count = 0 # this might need to be actuator_button_time stored in seconds?
 selected_card=0
+travel = 0
+con = sqlite3.connect('cards.db')
+cur = con.cursor()
 
 while True:
     suit_button.wait_for_press()
     suit_button_count += 1
     suit = suitMap[suit_button_count]
     print("The suit is set to: %s" % suit)
+    if suit_button_count > 4:
+        suit_button_count = 0
+        print("Suit has been unset")
+
 
 while True:
     card_value_button.wait_for_press()
@@ -51,16 +58,46 @@ while True:
     start_time=time.time()
         if (time.time() - start_time) >=4:
             selected_card = card_value + suit
-            
+            res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))          
+            slot = res.fetchone()[0]
+            print("Slot is set to %s to obtain card %s" % (slot,selected_card))
+            travel = slot*50
+            count = 0
+            while count < travel:
+                kit.stepper1.onestep(direction=stepper.FORWARD, style=stepper.MICROSTEP)
+                count += 1
+                time.sleep(.001)
+
+while True:
+    actuator_button.wait_for_press()
+    actuator__button_count += 1
+    
+    #Figure this crap out, basically if it's pressed actuator engages and pushes the card up. When switch is let go it decends to 0 point
+    #Call to update X card to the selected_card and place the previous X card into the current slot.
 
 
 
 
-if suit_button_count > 4:
-    suit_button_count = 0
+
+    print("The suit is set to: %s" % suit)
+    if suit_button_count > 4:
+        suit_button_count = 0
+        print("Suit has been unset")
 
 
 
+
+
+
+
+
+
+kit.stepper1.release()
+
+
+"""
+
+#reference code below, most will be re integrated into this script at some point.
 # Raspberry Pi Python 3 TM1637 quad 7-segment LED display driver examples
 from time import sleep
 import tm1637
@@ -89,12 +126,15 @@ sleep(DELAY)
 # Scroll trick name
 tm.scroll('Select a card with the Great Billsoni', 100) # 1 fps
 
-#define MICROSTEP 8
+#define MICROSTEP 16
 kit = MotorKit(i2c=board.I2C())
 #kit = MotorKit(i2c=busio.I2C( board.SCL, board.SDA, frequency=400_000)
 #kit.stepper1.release()
 
+# print name of card as we cycle forward one slot at a time through all 64 slots (to be reused somehow)
 slot = 0
+travel = 0
+
 while slot < 64:
     #tm.show('AS')
     res = cur.execute("SELECT cardVal FROM card2slot WHERE slotVal = ?", (slot,))       
@@ -116,3 +156,5 @@ while slot < 64:
 #count = 0
 
 kit.stepper1.release()
+
+"""
