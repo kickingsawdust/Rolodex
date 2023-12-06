@@ -23,16 +23,17 @@ from signal import pause
 retcode = subprocess.call(["/usr/bin/python", "zero_carousel_smooth.py"])
 if retcode != 0:
     print("Carousel did not zero properly, exiting")
-slot=0
 
 # Set some variables we'll be needing
 
+current_slot=0
 con = sqlite3.connect("cards.db", check_same_thread=False)
 cur = con.cursor()
 CLK = 15
 DIO = 14
 DELAY = .2
 tm = tm1637.TM1637(clk=CLK, dio=DIO)
+kit = MotorKit(i2c=board.I2C())
 travel = 0
 
 # Display trick name
@@ -53,6 +54,43 @@ actuator_button = Button(16)
 actuator_button_state = 0 # this might need to be actuator_button_time stored in seconds?
 selected_card = suit + card_value
 
+# Motor code section
+
+def position_carousel():
+    res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))       
+    target_slot = res.fetchone()[0]
+    global current_slot
+    if current_slot < target_slot: # we are going to go forward
+        travel = (target_slot - current_slot) * 25
+        print("Required travel to desired_slot %s is %s steps moving forwards" % (target_slot, travel))
+        step = 0
+        while step < travel:
+            kit.stepper1.onestep(direction=stepper.FORWARD, style=stepper.MICROSTEP)
+            time.sleep(.001)
+            step +=1
+        step = 0
+        travel = 0
+        current_slot = target_slot
+        print("Current slot is %s" % current_slot)
+        print("Releasing coils")
+        kit.stepper1.release()
+
+        
+    if current_slot > target_slot: # we are going to go backwards
+        travel = (current_slot - target_slot) * 25
+        print("Required travel to desired_slot %s is %s steps moving backwards" % (target_slot, travel))
+        step = 0
+        while step < travel:
+            kit.stepper1.onestep(direction=stepper.BACKWARD, style=stepper.MICROSTEP)
+            time.sleep(.001)
+            step +=1
+        step = 0
+        travel = 0
+        current_slot = target_slot
+        print("Current slot is %s" % current_slot)
+        print("Releasing coils")
+        kit.stepper1.release()
+
 # Button Code
 
 def change_suit():
@@ -71,8 +109,8 @@ def change_suit():
         print("The selected card is %s" % selected_card)
         if "unset" not in selected_card:
             res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))       
-            slot = res.fetchone()[0]
-            print("current slot %s" % slot)
+            target_slot = res.fetchone()[0]
+            print("target slot is %s" % target_slot)
             tm.write([0,0,0,0])
             tm.show(selected_card)
             sleep(DELAY)
@@ -91,8 +129,8 @@ def change_value():
         print("The selected card is %s" % selected_card)
         if "unset" not in selected_card:
             res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))       
-            slot = res.fetchone()[0]
-            print("current slot %s" % slot)
+            target_slot = res.fetchone()[0]
+            print("Desired slot %s" % target_slot)
             tm.write([0,0,0,0])
             tm.show(selected_card)
             sleep(DELAY)
@@ -101,8 +139,9 @@ def actuator_motor():
     global actuator_button_state
     if "unset" not in selected_card:
         res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))       
-        slot = res.fetchone()[0]
-        print("Actuator button has been pressed moving to slot %s to obtain %s" % (slot, selected_card))
+        target_slot = res.fetchone()[0]
+        print("Actuator button has been pressed moving to slot %s to obtain %s" % (target_slot, selected_card))
+        position_carousel()    
     else:
         print("No card selected")
 
@@ -115,65 +154,23 @@ pause()
 
 
 """
-
-#reference code below, most will be re integrated into this script at some point.
-# Raspberry Pi Python 3 TM1637 quad 7-segment LED display driver examples
-from time import sleep
-import tm1637
-
-con = sqlite3.connect("cards.db")
-cur = con.cursor()
-CLK = 15
-DIO = 14
-DELAY = .2
-
-tm = tm1637.TM1637(clk=CLK, dio=DIO)
-
-# all segments on "88:88"
-tm.write([127, 255, 127, 127])
-#tm.write(bytearray([127, 255, 127, 127]))
-#tm.write(b'\x7F\xFF\x7F\x7F')
-#tm.show('8888', True)
-#tm.numbers(88, 88, True)
-sleep(DELAY)
-
-# all segments off
-tm.write([0, 0, 0, 0])
-#tm.show('    ')
-sleep(DELAY)
-
-# Scroll trick name
-tm.scroll('Select a card with the Great Billsoni', 100) # 1 fps
-
-#define MICROSTEP 16
-kit = MotorKit(i2c=board.I2C())
-#kit = MotorKit(i2c=busio.I2C( board.SCL, board.SDA, frequency=400_000)
-#kit.stepper1.release()
-
-# print name of card as we cycle forward one slot at a time through all 64 slots (to be reused somehow)
-slot = 0
-travel = 0
-
-while slot < 64:
-    #tm.show('AS')
-    res = cur.execute("SELECT cardVal FROM card2slot WHERE slotVal = ?", (slot,))       
-    card = res.fetchone()[0]
-    print("%s" % card)
-    tm.show(card)
-    sleep(DELAY)
-    tm.write([0,0,0,0])
-    #print("%s" % (card,))
-    count = 0
-    while count < 50:
+def position_carousel():
+    res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))       
+    target_slot = res.fetchone()[0]
+    global slot
+    travel = (target_slot - slot) * 25
+    print("Required travel to desired_slot %s is %s steps" % (target_slot, travel))
+    step = 0
+    while step < travel:
         kit.stepper1.onestep(direction=stepper.FORWARD, style=stepper.MICROSTEP)
         time.sleep(.001)
-        count +=1
-    slot +=1
-    time.sleep(.1)
+        step +=1
+    step = 0
+    travel = 0
+    slot = target_slot
+    print("Current slot is %s" % slot)
 
-#origin = 0
-#count = 0
-
-kit.stepper1.release()
 
 """
+
+
