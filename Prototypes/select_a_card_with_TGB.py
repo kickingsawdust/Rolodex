@@ -114,6 +114,10 @@ def position_carousel():
 
 # Lift the card (linear actuator time!)
 
+def lift_card():
+        logging.info("lift button pressed" )
+        kit.stepper2.one
+
 # Button Code
 
 def change_suit():
@@ -174,7 +178,7 @@ def lift_card():
         res = cur.execute("SELECT slotVal FROM card2slot WHERE cardVal = ?", (selected_card,))       
         target_slot = res.fetchone()[0]
         logging.info("Actuator button has been pressed moving to slot %s to obtain %s" % (target_slot, selected_card))
-        position_carousel()    
+        lift_car()    
     else:
         logging.info("No card selected")
 
